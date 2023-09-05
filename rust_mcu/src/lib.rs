@@ -2,7 +2,8 @@
 
 pub mod consts {
     pub const MSG_END: u8 = 0xF7;
-    pub const MAX_MSG_LEN: usize = 100;
+    pub const MAX_MSG_LEN: usize = 54;
+    pub const SPACE: u8 = 0x20;
 }
 
 
@@ -68,22 +69,41 @@ pub mod base {
 }
 
 pub mod messaging {
+    use crate::base::initialize_message;
     use super::base::validate_message;
+    use super::consts::*;
     use midir::{MidiOutput, MidiOutputConnection};
 
-    fn send_message(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
+    pub fn send_message(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
         if !validate_message(msg) {
             println!("invalid message");
         }
         let message_to_send: Vec<u8> = msg.to_owned();
         conn_out.send(&message_to_send).unwrap();
     } 
+
+    pub fn clear_display(conn_out: &mut MidiOutputConnection) {
+        let mut one = initialize_message(1);
+        let mut two = initialize_message(2);
+
+        for i in 0..MAX_MSG_LEN-1 {
+            one.push(SPACE);
+            two.push(SPACE);
+        }
+        one.push(MSG_END);
+        two.push(MSG_END);
+
+        send_message(&one, conn_out);
+        send_message(&two, conn_out);
+
+    }
 }
 
 
 pub mod mcu_display_animator {
     use super::base::*;
     use super::consts;
+    use super::messaging;
     struct Animator {
         buffer: Vec<u8>,
     }
