@@ -31,16 +31,19 @@ fn main() {
     // Ask the user to select a MIDI device
     println!("Select a MIDI Output Port by entering its index:");
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
+    std::io::stdin()
+        .read_line(&mut input)
+        .unwrap();
     let selected_port_index: usize = input.trim().parse().unwrap();
 
 
 
-
-    if let Some(midi_out_port) = midi_out_ports.get(selected_port_index) {    // Check if the selected index is valid
-
+    // Check if the selected index is valid and create an output
+    if let Some(midi_out_port) = midi_out_ports.get(selected_port_index) {   
         let mut conn_out: MidiOutputConnection = midi_out.connect(midi_out_port, "my-midi-output").unwrap(); 
     }
+
+
 }
 
 
