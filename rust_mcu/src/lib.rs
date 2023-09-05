@@ -67,7 +67,7 @@ pub mod base {
     }
 }
 
-pub mod midi_message_sending {
+pub mod messaging {
     use super::base::validate_message;
     use midir::{MidiOutput, MidiOutputConnection};
 
