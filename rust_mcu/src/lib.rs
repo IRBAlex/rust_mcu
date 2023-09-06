@@ -7,11 +7,23 @@ pub mod consts {
 }
 
 
-
-
-
 pub mod base {
     use super::consts::*;
+
+    pub enum MainDisplayLine {
+        First,
+        Second
+    } 
+    impl MainDisplayLine {
+        pub fn to_byte_literal(&self) -> u8 {
+            match &self {
+                Self::First => 0x00,
+                Self::Second => 0x38
+            }
+        }
+    }
+
+
 
     pub fn initialize_message(line: u8) -> Vec<u8> {
         // we need to initialize with
@@ -34,8 +46,6 @@ pub mod base {
         for b in s.bytes() {
             v.push(b);
         }
-        // append message end
-        v.push(MSG_END);
         v
     }
     
@@ -78,7 +88,8 @@ pub mod messaging {
         if !validate_message(msg) {
             println!("invalid message");
         }
-        let message_to_send: Vec<u8> = msg.to_owned();
+        let mut message_to_send: Vec<u8> = msg.to_owned();
+        message_to_send.push(MSG_END);
         conn_out.send(&message_to_send).unwrap();
     } 
 
@@ -101,11 +112,19 @@ pub mod messaging {
 
 
 pub mod mcu_display_animator {
-    use super::base::*;
+    use super::base::{
+        initialize_message, 
+        string_to_mcu_message, 
+        validate_message
+    };
     use super::consts;
     use super::messaging;
+
     struct Animator {
         buffer: Vec<u8>,
+        line: u8
+        // the line number coresponds to the byte stored at buffer[6]
+        // 0x00 for line 1, 0x38 for line 2
     }
 
     impl Animator {
@@ -113,12 +132,14 @@ pub mod mcu_display_animator {
         pub fn new() -> Animator {
             Animator {
                 buffer: Vec::<u8>::new(),
+                line: 1
             }
         }
         // runs initialize_message(line) on Animator.buffer 
         pub fn init_as_mcu_text_msg(line: u8) -> Animator {
             Animator {
                 buffer: initialize_message(line),
+                line: line
             }
         }
         // add a single character to an existing Animator's buffer list
@@ -130,8 +151,8 @@ pub mod mcu_display_animator {
         pub fn add_buffer(&mut self, buffer: Vec<u8>) {
             if buffer.is_empty() {()}
 
-            for c in buffer {
-                self.buffer.push(c);
+            for b in buffer {
+                self.buffer.push(b);
             }
         }
 
@@ -146,8 +167,5 @@ pub mod mcu_display_animator {
                 _ => println!("Not a valid line number for MCU text message"),
             }
         }
-
-        // cycle through the characters in the Animator's buffer
-        pub fn cycle_char(){()}
     }
 }
