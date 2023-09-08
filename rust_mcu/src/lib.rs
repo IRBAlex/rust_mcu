@@ -11,7 +11,7 @@ pub mod consts {
 
 pub mod base {
     use super::consts::*;
-    
+
     pub fn initialize_message(line: u8) -> Vec<u8> {
         // we need to initialize with
         // 0xf0 0x00 0x00 0x66 0x14 0x12 0x00/0x38 depending on line num
@@ -66,17 +66,26 @@ pub mod base {
 }
 
 pub mod messaging {
+    use std::mem::MaybeUninit;
+
     use crate::base::initialize_message;
     use super::base::validate_message;
     use super::consts::*;
     use midir::{MidiOutput, MidiOutputConnection};
 
-    enum McuMessageType {
+    pub enum McuMessageType {
         MainDisplayT,
         MainDisplayB
     }
 
     impl McuMessageType {
+
+        pub fn to_msg_code(self) -> Vec<u8> {
+            match self {
+                Self::MainDisplayT => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x00),
+                Self::MainDisplayB => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x36)
+            }
+        }
 
     }
 
