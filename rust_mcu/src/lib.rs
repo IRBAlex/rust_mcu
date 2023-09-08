@@ -7,24 +7,11 @@ pub mod consts {
 }
 
 
+
+
 pub mod base {
     use super::consts::*;
-
-    pub enum MainDisplayLine {
-        First,
-        Second
-    } 
-    impl MainDisplayLine {
-        pub fn to_byte_literal(&self) -> u8 {
-            match &self {
-                Self::First => 0x00,
-                Self::Second => 0x38
-            }
-        }
-    }
-
-
-
+    
     pub fn initialize_message(line: u8) -> Vec<u8> {
         // we need to initialize with
         // 0xf0 0x00 0x00 0x66 0x14 0x12 0x00/0x38 depending on line num
@@ -84,6 +71,15 @@ pub mod messaging {
     use super::consts::*;
     use midir::{MidiOutput, MidiOutputConnection};
 
+    enum McuMessageType {
+        MainDisplayT,
+        MainDisplayB
+    }
+
+    impl McuMessageType {
+
+    }
+
     pub fn send_message(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
         if !validate_message(msg) {
             println!("invalid message");
@@ -108,6 +104,8 @@ pub mod messaging {
         send_message(&two, conn_out);
 
     }
+
+
 }
 
 
