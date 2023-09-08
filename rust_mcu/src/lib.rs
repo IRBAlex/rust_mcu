@@ -87,6 +87,11 @@ pub mod messaging {
             }
         }
 
+        pub fn debug_print_msg_type_as_bytes(self) {
+            let debug_print: Vec<u8> = self.to_msg_code();
+            println!("{:02X?}", debug_print);
+            drop(debug_print);
+        }
     }
 
     pub fn send_message(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {

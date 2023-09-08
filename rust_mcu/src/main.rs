@@ -10,7 +10,10 @@ use chrono::{Local, DateTime, TimeZone};
 
 use rust_mcu::base::*;
 use rust_mcu::mcu_display_animator::*;
-use rust_mcu::messaging::*;
+use rust_mcu::messaging::{
+    McuMessageType,
+    send_message
+};
 
 fn main() {
 
