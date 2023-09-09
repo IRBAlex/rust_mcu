@@ -1,140 +1,102 @@
-
-
 pub mod consts {
     pub const MSG_END: u8 = 0xF7;
     pub const MAX_MSG_LEN: usize = 54;
-    pub const SPACE: u8 = 0x20;
+    pub const WSPACE: u8 = 0x20;
 }
 
+pub enum McuMsgType {
+    MainDisplayT,
+    MainDisplayB
+}
 
+impl McuMsgType {
 
+    pub fn to_msg_code(self) -> Vec<u8> {
+        match self {
+            Self::MainDisplayT => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x00),
+            Self::MainDisplayB => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x36)
+        }
+    }
+    pub fn debug_print_msg_type_as_bytes(self) {
+        let debug_print: Vec<u8> = self.to_msg_code();
+        println!("{:02X?}", debug_print);
+        drop(debug_print);
+    }
+}
 
 pub mod base {
     use super::consts::*;
+    use super::McuMsgType;
 
-    pub fn initialize_message(line: u8) -> Vec<u8> {
-        // we need to initialize with
-        // 0xf0 0x00 0x00 0x66 0x14 0x12 0x00/0x38 depending on line num
-
-        match line {
-            1 => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x00),
-            2 => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x38),
-            _ => {
-                println!("Unable to initialize message on line {}", line);
-                vec!()
-            }  
-        }
+    pub fn initialize_msg(msg_type: McuMsgType) -> Vec<u8> {
+        msg_type.to_msg_code()
     }
-    
-    pub fn string_to_mcu_message(s: &str, line: u8) -> Vec<u8> {
-        // create a new message with required information bytes
-        let mut v = initialize_message(line);
+
+    pub fn string_to_mcu_msg(s: &str, msg_type: McuMsgType) -> Vec<u8> {
+        // create a new msg with required information bytes
+        let mut v = initialize_msg(msg_type);
     
         for b in s.bytes() {
             v.push(b);
         }
         v
     }
-    
-    
-    pub fn input_to_mcu_message(line: u8) -> Vec<u8> {
+
+    pub fn input_to_mcu_msg(msg_type: McuMsgType) -> Vec<u8> {
         let mut user_string: String = String::new();
         println!("enter text to send:\n");
         std::io::stdin().read_line(&mut user_string);
     
-        let m = string_to_mcu_message(&user_string, line);
+        let m = string_to_mcu_msg(&user_string, msg_type);
         m
-    }
-    
-    pub fn validate_message(message: &Vec<u8>) -> bool {
-        if message.is_empty() || message.len() > MAX_MSG_LEN {
-            return false;
-        }
-        match message[0] {
-            0xF0 => true,
-            _ => false
-        }
-    }
-    
-    fn send_message_test(msg: &Vec<u8>) {
-        if !validate_message(msg) {
-            println!("Invalid message");
-        }
-        let own: Vec<u8> = msg.to_owned();
-        println!("{:02X?}", own);
     }
 }
 
-pub mod messaging {
-    use std::mem::MaybeUninit;
 
-    use crate::base::initialize_message;
-    use super::base::validate_message;
+pub mod messaging {
+
+    use super::McuMsgType;
+    use super::base::initialize_msg;
     use super::consts::*;
     use midir::{MidiOutput, MidiOutputConnection};
 
-    pub enum McuMessageType {
-        MainDisplayT,
-        MainDisplayB
-    }
+    pub fn send_msg(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
 
-    impl McuMessageType {
-
-        pub fn to_msg_code(self) -> Vec<u8> {
-            match self {
-                Self::MainDisplayT => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x00),
-                Self::MainDisplayB => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x36)
-            }
-        }
-
-        pub fn debug_print_msg_type_as_bytes(self) {
-            let debug_print: Vec<u8> = self.to_msg_code();
-            println!("{:02X?}", debug_print);
-            drop(debug_print);
-        }
-    }
-
-    pub fn send_message(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
-        if !validate_message(msg) {
-            println!("invalid message");
-        }
-        let mut message_to_send: Vec<u8> = msg.to_owned();
-        message_to_send.push(MSG_END);
-        conn_out.send(&message_to_send).unwrap();
+        let mut msg_to_send: Vec<u8> = msg.to_owned();
+        msg_to_send.push(MSG_END);
+        conn_out.send(&msg_to_send).unwrap();
     } 
 
     pub fn clear_display(conn_out: &mut MidiOutputConnection) {
-        let mut one = initialize_message(1);
-        let mut two = initialize_message(2);
+        let mut one = initialize_msg(McuMsgType::MainDisplayT);
+        let mut two = initialize_msg(McuMsgType::MainDisplayB);
 
         for i in 0..MAX_MSG_LEN-1 {
-            one.push(SPACE);
-            two.push(SPACE);
+            one.push(WSPACE);
+            two.push(WSPACE);
         }
         one.push(MSG_END);
         two.push(MSG_END);
 
-        send_message(&one, conn_out);
-        send_message(&two, conn_out);
+        send_msg(&one, conn_out);
+        send_msg(&two, conn_out);
 
     }
-
-
 }
 
 
 pub mod mcu_display_animator {
+    use crate::McuMsgType;
+
     use super::base::{
-        initialize_message, 
-        string_to_mcu_message, 
-        validate_message
+        initialize_msg, 
+        string_to_mcu_msg, 
     };
     use super::consts;
     use super::messaging;
 
     struct Animator {
         buffer: Vec<u8>,
-        line: u8
         // the line number coresponds to the byte stored at buffer[6]
         // 0x00 for line 1, 0x38 for line 2
     }
@@ -144,14 +106,12 @@ pub mod mcu_display_animator {
         pub fn new() -> Animator {
             Animator {
                 buffer: Vec::<u8>::new(),
-                line: 1
             }
         }
-        // runs initialize_message(line) on Animator.buffer 
-        pub fn init_as_mcu_text_msg(line: u8) -> Animator {
+        // runs initialize_msg(line) on Animator.buffer 
+        pub fn init_as_mcu_text_msg(line: McuMsgType) -> Animator {
             Animator {
-                buffer: initialize_message(line),
-                line: line
+                buffer: initialize_msg(line),
             }
         }
         // add a single character to an existing Animator's buffer list
@@ -171,12 +131,12 @@ pub mod mcu_display_animator {
         
         pub fn change_anim_line(&mut self) {
             if self.buffer.is_empty() || self.buffer.len() < 7 {
-                println!("Cannot change line of incomplete message");
+                println!("Cannot change line of incomplete msg");
             }
             match self.buffer[6] {
                 0x00 => self.buffer[6] = 0x38,
                 0x38 => self.buffer[6] = 0x00,
-                _ => println!("Not a valid line number for MCU text message"),
+                _ => println!("Not a valid line number for MCU text msg"),
             }
         }
     }

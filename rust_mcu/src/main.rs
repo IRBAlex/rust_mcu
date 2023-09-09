@@ -17,6 +17,7 @@ use rust_mcu::messaging::{
 
 fn main() {
 
+
     // midi BP for testin
 
     // Create a MidiOutput instance
