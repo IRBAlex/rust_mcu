@@ -1,3 +1,7 @@
+pub mod macros {
+    
+}
+
 pub mod consts {
     pub const MSG_END: u8 = 0xF7;
     pub const MAX_MSG_LEN: usize = 54;
@@ -23,6 +27,7 @@ impl McuMsgType {
         drop(debug_print);
     }
 }
+
 
 pub mod base {
     use super::consts::*;
