@@ -1,19 +1,21 @@
+// external dependencies
 use midir::{MidiOutput, MidiOutputConnection};
 use std::thread::sleep;
 use std::time::Duration;
 use std::io;
 use std::fs::File;
 use std::io::prelude::*;
-use chrono::{Local, DateTime, TimeZone};
 
 // internal dependencies below here
 
 use rust_mcu::base::*;
+use rust_mcu::McuMsgType;
 use rust_mcu::mcu_display_animator::*;
 use rust_mcu::messaging::{
-    McuMessageType,
-    send_message
+    send_msg,
+    clear_main_display,
 };
+
 
 fn main() {
 

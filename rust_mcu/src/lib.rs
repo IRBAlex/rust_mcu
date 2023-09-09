@@ -11,7 +11,7 @@ pub enum McuMsgType {
 
 impl McuMsgType {
 
-    pub fn to_msg_code(self) -> Vec<u8> {
+    fn to_msg_code(self) -> Vec<u8> {
         match self {
             Self::MainDisplayT => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x00),
             Self::MainDisplayB => vec!(0xF0, 0x00, 0x00, 0x66, 0x14, 0x12, 0x36)
@@ -67,7 +67,7 @@ pub mod messaging {
         conn_out.send(&msg_to_send).unwrap();
     } 
 
-    pub fn clear_display(conn_out: &mut MidiOutputConnection) {
+    pub fn clear_main_display(conn_out: &mut MidiOutputConnection) {
         let mut one = initialize_msg(McuMsgType::MainDisplayT);
         let mut two = initialize_msg(McuMsgType::MainDisplayB);
 
@@ -86,17 +86,22 @@ pub mod messaging {
 
 
 pub mod mcu_display_animator {
-    use crate::McuMsgType;
+use std::time::Duration;
 
+    use super::McuMsgType;
     use super::base::{
         initialize_msg, 
         string_to_mcu_msg, 
     };
     use super::consts;
-    use super::messaging;
+    use super::messaging::{
+        send_msg,
+        clear_main_display,
+    };
 
     struct Animator {
         buffer: Vec<u8>,
+        
         // the line number coresponds to the byte stored at buffer[6]
         // 0x00 for line 1, 0x38 for line 2
     }
@@ -109,7 +114,7 @@ pub mod mcu_display_animator {
             }
         }
         // runs initialize_msg(line) on Animator.buffer 
-        pub fn init_as_mcu_text_msg(line: McuMsgType) -> Animator {
+        pub fn init_filled_buffer(line: McuMsgType) -> Animator {
             Animator {
                 buffer: initialize_msg(line),
             }
@@ -120,7 +125,7 @@ pub mod mcu_display_animator {
         }
 
         // add buffer (as u8) from a vec to an existing Animator's buffer list
-        pub fn add_buffer(&mut self, buffer: Vec<u8>) {
+        pub fn add_to_buffer(&mut self, buffer: Vec<u8>) {
             if buffer.is_empty() {()}
 
             for b in buffer {
@@ -128,16 +133,13 @@ pub mod mcu_display_animator {
             }
         }
 
-        
-        pub fn change_anim_line(&mut self) {
-            if self.buffer.is_empty() || self.buffer.len() < 7 {
-                println!("Cannot change line of incomplete msg");
-            }
-            match self.buffer[6] {
-                0x00 => self.buffer[6] = 0x38,
-                0x38 => self.buffer[6] = 0x00,
-                _ => println!("Not a valid line number for MCU text msg"),
-            }
+        pub fn anim_cycle(&self, frame_delay_sec: Duration) {
+
         }
+
+
+
+        
     }
+
 }
