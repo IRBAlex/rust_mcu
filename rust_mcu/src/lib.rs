@@ -60,6 +60,10 @@ pub mod messaging {
     use super::consts::*;
     use midir::{MidiOutput, MidiOutputConnection};
 
+
+    // ALL functions that rely on send_msg() will also need a MidiOutputConnection
+    // these functions should begin with "send" 
+    // to ensure the need for MidiOutputConnection is clear
     pub fn send_msg(msg: &Vec<u8>, conn_out: &mut MidiOutputConnection) {
 
         let mut msg_to_send: Vec<u8> = msg.to_owned();
@@ -87,6 +91,9 @@ pub mod messaging {
 
 pub mod mcu_display_animator {
 use std::time::Duration;
+use std::thread::sleep;
+
+    use midir::MidiOutputConnection;
 
     use super::McuMsgType;
     use super::base::{
@@ -100,42 +107,46 @@ use std::time::Duration;
     };
 
     struct Animator {
-        buffer: Vec<u8>,
-        
-        // the line number coresponds to the byte stored at buffer[6]
-        // 0x00 for line 1, 0x38 for line 2
+        char_buffer: Vec<u8>,
+        frame_buffer: Vec<Vec<u8>>
     }
 
     impl Animator {
         // allow for creation of blank Animators with Animator::new()
         pub fn new() -> Animator {
             Animator {
-                buffer: Vec::<u8>::new(),
-            }
-        }
-        // runs initialize_msg(line) on Animator.buffer 
-        pub fn init_filled_buffer(line: McuMsgType) -> Animator {
-            Animator {
-                buffer: initialize_msg(line),
-            }
-        }
-        // add a single character to an existing Animator's buffer list
-        pub fn add_char(&mut self, c: u8) {
-            self.buffer.push(c);
-        }
-
-        // add buffer (as u8) from a vec to an existing Animator's buffer list
-        pub fn add_to_buffer(&mut self, buffer: Vec<u8>) {
-            if buffer.is_empty() {()}
-
-            for b in buffer {
-                self.buffer.push(b);
+                char_buffer: Vec::new(), // Vec<u8>
+                frame_buffer: Vec::new() // Vec<Vec<u8>>
+                
             }
         }
 
-        pub fn anim_cycle(&self, frame_delay_sec: Duration) {
+        pub fn add_to_char_buffer(&mut self, char_buffer_addon: Vec<u8>) {
+            if char_buffer_addon.is_empty() {()}
 
+            for b in char_buffer_addon {
+                self.char_buffer.push(b);
+            }
         }
+
+
+        pub fn init_frame_buffer(&mut self, msg_type: McuMsgType) {
+
+            if self.char_buffer.is_empty() {()}
+
+            for c in self.char_buffer {
+                let mut new_frame: Vec<u8> = initialize_msg(msg_type);
+                new_frame.push(c);
+                self.frame_buffer.push(new_frame);
+        }
+
+        pub fn send_anim_cycle(
+            self, 
+            location: McuMsgType,
+            conn_out: MidiOutputConnection) {
+            
+            let timeout_sec: Duration = Duration::from_secs(u64::MAX);
+            }
 
 
 
